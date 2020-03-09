@@ -24,7 +24,7 @@
 9. 自行建立 Django apps、設置 urls 等等
 9. 自行修改替換 tailwind.config.js 中的設計需求設置，修改樣式 `frontend/style.scss`
 10. 執行 `npm run build` 產生開發環境使用的樣式檔
-11. 執行 `python manage.py runserver` 開發 Django 應用
+11. 執行 `python manage.py runserver` 、開發 Django 應用
 12. 部署前：
 	1. 修改 `config/settings.py`（DEBUG = False）
 	2. 執行 `npm run deploy` 產生正式環境使用的樣式檔（已簡化、壓縮、purge）
@@ -42,7 +42,7 @@ INSTALLED_APPS = [
 TEMPLATES = [
     {
       ...
-      'DIRS': [os.path.join(BASE_DIR, 'templates')],
+      'DIRS': [os.path.join(BASE_DIR, 'templates')], // (1.)
       ...
     },
 ]
@@ -50,23 +50,43 @@ TEMPLATES = [
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'assets'),
+    os.path.join(BASE_DIR, 'assets'), // (2.)
 ]
 
 WEBPACK_LOADER = {
     'DEFAULT': {
         'CACHE': not DEBUG,
-        'BUNDLE_DIR_NAME': 'bundles/',
-        'STATS_FILE': os.path.join(BASE_DIR, 'webpack-stats.json'),
+        'BUNDLE_DIR_NAME': 'bundles/', // (3.)
+        'STATS_FILE': os.path.join(BASE_DIR, 'webpack-stats.json'), //(4.)
     }
 }
 
 if not DEBUG:
     WEBPACK_LOADER['DEFAULT'].update({
-        'BUNDLE_DIR_NAME': 'dist/',
-        'STATS_FILE': os.path.join(BASE_DIR, 'webpack-stats-prod.json'),
+        'BUNDLE_DIR_NAME': 'dist/', // (5.)
+        'STATS_FILE': os.path.join(BASE_DIR, 'webpack-stats-prod.json'), // (6.)
     })
 ```
+
+1. Django 預設是去每個應用目錄下找模版，但我覺得設置集中的 `templates` 目錄更方便，只要記得下面的次目錄還是要遵循 Django 預設架構。
+2. 我覺得 Django 靜態資源的幾個設置，最理想的設置法應該是：
+    - URL = '/static/'
+    - ROOT = 'public'
+    - DIRS = 'assets'
+3. 平時開發執行 `npm run build`，是將彙整後的樣式與 JS 擺放到 `assets/bundles/` 目錄下，未壓縮、簡化，比較好檢查錯誤。
+4. 透過 webpack-bundle-tracker，會替每項彙整後的資源打上「檔名 hash」、讓瀏覽器能每次均載入最新的修正，這個唯一的檔名就必須要能讓 Django 知道，所以會產生一個 webpack-stats.json 檔案。
+5. 正式部署前執行 `npm run deploy` 會將彙整後檔案改放到 `assets/dist/` 目錄，這時的檔案已經簡化、壓縮、甚至還經過了 PurgeCSS 的處理。（**記得要先去修改 `settings.py` 中的 DEBUG 設定！**）
+6. 紀錄正式彙整後 stats 的檔名加上 prod 字樣。
+
+## Django 模版使用
+
+- 頂端引入 `{% load render_bundle from webpack_loader %}`
+- 擺放樣式 `{% render_bundle 'main' 'css' %}`
+- 擺放程式 `{% render_bundle 'main' 'js' %}`
+
+一般來說，這些東西寫進 `base.html` 基礎排版檔後就不用再管了。
+
+進階用法可以設置多個 webpack projects 分別引入，請參考 [官方解說](https://github.com/owais/django-webpack-loader#multiple-webpack-projects) 自行修改。
 
 ## 目錄設定
 
