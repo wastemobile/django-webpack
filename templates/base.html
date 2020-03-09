@@ -1,0 +1,17 @@
+{% load render_bundle from webpack_loader %}
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+	<meta charset="UTF-8">
+	<title>{% block title %} {% endblock title %}</title>
+	{% render_bundle 'main' 'css' %}
+</head>
+<body>
+	{% block content %}
+	
+	{% endblock content %}	
+	
+	{% render_bundle 'main' 'js' %}
+</body>
+</html>
